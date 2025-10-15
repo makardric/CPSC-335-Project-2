@@ -11,8 +11,9 @@
 # Get user input on their starting building and where they want to go 
 
 
-from tkinter import *
-import matplotlib
+import tkinter as tk
+import matplotlib.pyplot as plt
+import networkx as nx
 from collections import deque
 
 
@@ -78,36 +79,48 @@ def dfs_cycle_and_topo(graph):
 
     return False, topo
 
-campus = {}
-while True:
-    new_building = input("What building would you like to add?: ")
-    if new_building not in campus:
-        campus[new_building] = []
-    if len(campus) > 1:
-        print("What buildings would you like to connect?")
-        buildingOne = input("First building: ")
-        buildingTwo = input("Second building: ")
-        # connected_buildings = connected_buildings.split(",")  # e.g., "Library, Gym" -> ["Library", "Gym"]
+
+def foo():
+    print("yay")
+
+
+def makeGraph():
+    g = nx.Graph()
+
+    for i in test_data:
+        g.add_node(i)
+
+    nx.draw(g, with_labels=True, node_color='lightblue', font_weight='bold')
+    plt.show()
+
+# campus = {}
+# while True:
+#     new_building = input("What building would you like to add?: ")
+#     if new_building not in campus:
+#         campus[new_building] = []
+#     if len(campus) > 1:
+#         print("What buildings would you like to connect?")
+#         buildingOne = input("First building: ")
+#         buildingTwo = input("Second building: ")
+#         # connected_buildings = connected_buildings.split(",")  # e.g., "Library, Gym" -> ["Library", "Gym"]
 
     
-        if buildingOne and buildingTwo in campus:
-            if buildingOne not in campus[buildingTwo]:
-                campus[buildingTwo].append(buildingOne)
+#         if buildingOne and buildingTwo in campus:
+#             if buildingOne not in campus[buildingTwo]:
+#                 campus[buildingTwo].append(buildingOne)
 
-            if buildingTwo not in campus[buildingOne]:
-                campus[buildingOne].append(buildingTwo)
-        else:
-            campus[buildingOne] = []
-            campus[buildingTwo] = [] 
+#             if buildingTwo not in campus[buildingOne]:
+#                 campus[buildingOne].append(buildingTwo)
+#         else:
+#             campus[buildingOne] = []
+#             campus[buildingTwo] = [] 
 
-    print(campus)
+#     print(campus)
 
-    exit_loop = input("Exit loop? (Yes/No): \n")
-    if exit_loop.lower() == "yes":
-        break
+#     exit_loop = input("Exit loop? (Yes/No): \n")
+#     if exit_loop.lower() == "yes":
+#         break
     
-
-
 # #Demo BFS Function
 
 # campus = {
@@ -116,10 +129,11 @@ while True:
 #     "GYM": ["CS", "CAFE"],
 #     "CAFE": ["LIB", "GYM"],
 # }
-dist, parent, order = bfs_shortest_paths(campus, "CS")
-print("BFS order from CS:", order)
-path = reconstruct_path(parent, "CS", "CAFE")
-print("Shortest (fewer hops) path CS -> CAFE:", path)
+
+# dist, parent, order = bfs_shortest_paths(campus, "CS")
+# print("BFS order from CS:", order)
+# path = reconstruct_path(parent, "CS", "CAFE")
+# print("Shortest (fewer hops) path CS -> CAFE:", path)
 
 
 
@@ -143,3 +157,32 @@ print("Shortest (fewer hops) path CS -> CAFE:", path)
 # cyc, topo2 = dfs_cycle_and_topo(cyclic)
 # print("Cycle in Cyclic?", cyc)
 # print("Topo for Cyclic (should be empty):", topo2)
+
+
+
+
+test_data = ["CS", "Library", "Cafe"]
+
+# initialize main window
+main_window = tk.Tk()
+
+
+
+
+# window size and title of window
+main_window.geometry("1200x800")
+main_window.title("Graph Visualization")
+# main_window.configure(bg = "AntiqueWhite2")
+
+
+
+generateGraphButton = tk.Button(main_window, text = "Make Graph", command = makeGraph)
+
+
+
+generateGraphButton.pack(pady=5)
+
+
+
+# main window loop
+main_window.mainloop()
