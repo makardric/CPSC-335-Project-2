@@ -88,32 +88,76 @@ def foo():
 
 def makeGraph():
     ax.clear()
-    for i in test_data:
-        g.add_node(i)
 
-    for edges in test_edges.values():
-        g.add_edge(edges[0], edges[1])
+    # Add new nodes and edges
+    for i in nodes:
+        G.add_node(i)
+    for edge in graph_edges.values():
+        G.add_edge(edge[0], edge[1])
 
-    edges = g.edges()
-    
-    # colors = [g[u][v]['color'] for u,v in edges]
-    # weights = [g[u][v]['weight'] for u,v in edges]
-    nx.draw(g, with_labels=True, node_color='lightblue', font_weight='bold', ax = ax)
+    # if len(G.nodes) > 0:
+    #     # If pos is empty (first time), generate positions for all nodes
+    #     if not pos:
+    #         pos.update(nx.spring_layout(G))
+    #     else:
+    #         # Only compute positions for new nodes, keep old nodes fixed
+    #         new_nodes = [n for n in G.nodes() if n not in pos]
+    #         if new_nodes:
+    #             new_pos = nx.spring_layout(G, pos=pos, fixed=pos.keys())
+    #             pos.update(new_pos)
+
+    nx.draw(G, with_labels=True, node_color='lightblue', font_weight='bold', ax=ax)
 
     canvas.draw()
-    canvas.get_tk_widget().pack()
 
-    # plt.show()
 
 def updateGraph():
-    pass
+    input = addBuildingText.get("1.0", 'end-1c').upper()
+    if not input:
+        return
+    if input in nodes:
+        print("Building already exists.")
+        return
+
+    nodes.append(input)
+    print(nodes)
+    makeGraph()
 
 def createEdge():
-    pass
+    global edge_counter
+    connect_buildings = [b.strip().upper() for b in addEdgeBuildingsText.get("1.0", 'end-1c').split(',')] 
+    
+    if len(connect_buildings) != 2:
+        print("Please input 2 valid buildings")
+        return
+    
+    a, b = connect_buildings
+    
+    try:
+        edgeDistance = int(addEdgeDistanceText.get("1.0", 'end-1c'))
+        edgeTime = int(addEdgeTimeText.get("1.0", 'end-1c'))
+    except ValueError:
+        print("Please input a valid number for distances and or time")
+
+    if a not in nodes or b not in nodes:
+        print(f"One or both buildings ({a}, {b}) do not exist.")
+    
+    for edges in graph_edges.values():
+        if set(edges) == {a, b}:
+            print("This edge already exists.")
+            return
+        
+    graph_edges["edge" + str(edge_counter)] = [a, b]
+    makeGraph()
+    edge_counter += 1
+    print(graph_edges)
+    print(f"Current edge weight: {edgeDistance}")
+    print(f"Current edge time: {edgeTime}")
 
 
-test_data = ["CS", "Library", "Cafe"]
-test_edges = {"edge1" : ["CS", "Library"], "edge2" : ["Library", "Cafe"]}
+
+nodes = []
+graph_edges = {}
 
 
 # initialize main window
@@ -124,7 +168,7 @@ main_window = tk.Tk()
 
 
 # window size and title of window
-main_window.geometry("1200x800")
+main_window.geometry("1200x1000")
 main_window.title("Graph Visualization")
 # main_window.configure(bg = "AntiqueWhite2")
 
@@ -176,11 +220,13 @@ edge_button_left_frame.pack(side="left", padx=5, pady=5)
 
 # buttons to customize edges
 addEdgeBuildingsText = tk.Text(edge_button_left_frame, height = 1, width = 20)
-addEdgeWeightText = tk.Text(edge_button_left_frame, height = 1, width = 20)
+addEdgeDistanceText = tk.Text(edge_button_left_frame, height = 1, width = 20)
+addEdgeTimeText = tk.Text(edge_button_left_frame, height = 1, width = 20)
 addEdgeAccessible = tk.Checkbutton(edge_button_left_frame, text = "Accessible", height = 1, width = 20)
 
 addEdgeBuildingsText.pack(side = tk.TOP)
-addEdgeWeightText.pack(side = tk.TOP)
+addEdgeDistanceText.pack(side = tk.TOP)
+addEdgeTimeText.pack(side = tk.TOP)
 addEdgeAccessible.pack(side = tk.TOP)
 
 
@@ -192,22 +238,29 @@ edge_button_right_frame.pack(side="left", padx=5, pady=5)
 addEdgeBuildingButton = tk.Button(edge_button_right_frame, text = "Create Edge", command = createEdge, height = 3, width = 20)
 addEdgeBuildingButton.pack()
 
-
+main_frame.pack()
 
 generateGraphButton = tk.Button(main_window, text = "Make Graph", command = makeGraph)
 
 
 generateGraphButton.pack(pady=5)
 
-main_frame.pack()
 
-g = nx.Graph()
+
+G = nx.Graph()
+pos = {}
+edge_counter = 0
 
 fig = Figure(figsize = (5,5))
 ax = fig.add_subplot(111)
 ax.axis('off')
 canvas = FigureCanvasTkAgg(fig, master=main_window)
 canvas.get_tk_widget().pack(pady=20)
+
+
+
+
+
 
 
 # main window loop
