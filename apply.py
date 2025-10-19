@@ -15,6 +15,8 @@ import tkinter as tk
 import matplotlib.pyplot as plt
 import networkx as nx
 from collections import deque
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
 
 
@@ -85,87 +87,39 @@ def foo():
 
 
 def makeGraph():
-    g = nx.Graph()
-
+    ax.clear()
     for i in test_data:
         g.add_node(i)
 
-    nx.draw(g, with_labels=True, node_color='lightblue', font_weight='bold')
-    plt.show()
+    for edges in test_edges.values():
+        g.add_edge(edges[0], edges[1])
 
-# campus = {}
-# while True:
-#     new_building = input("What building would you like to add?: ")
-#     if new_building not in campus:
-#         campus[new_building] = []
-#     if len(campus) > 1:
-#         print("What buildings would you like to connect?")
-#         buildingOne = input("First building: ")
-#         buildingTwo = input("Second building: ")
-#         # connected_buildings = connected_buildings.split(",")  # e.g., "Library, Gym" -> ["Library", "Gym"]
-
+    edges = g.edges()
     
-#         if buildingOne and buildingTwo in campus:
-#             if buildingOne not in campus[buildingTwo]:
-#                 campus[buildingTwo].append(buildingOne)
+    # colors = [g[u][v]['color'] for u,v in edges]
+    # weights = [g[u][v]['weight'] for u,v in edges]
+    nx.draw(g, with_labels=True, node_color='lightblue', font_weight='bold', ax = ax)
 
-#             if buildingTwo not in campus[buildingOne]:
-#                 campus[buildingOne].append(buildingTwo)
-#         else:
-#             campus[buildingOne] = []
-#             campus[buildingTwo] = [] 
+    canvas.draw()
+    canvas.get_tk_widget().pack()
 
-#     print(campus)
+    # plt.show()
 
-#     exit_loop = input("Exit loop? (Yes/No): \n")
-#     if exit_loop.lower() == "yes":
-#         break
-    
-# #Demo BFS Function
+def updateGraph():
+    pass
 
-# campus = {
-#     "CS": ["LIB", "GYM"],
-#     "LIB": ["CS", "CAFE"],
-#     "GYM": ["CS", "CAFE"],
-#     "CAFE": ["LIB", "GYM"],
-# }
-
-# dist, parent, order = bfs_shortest_paths(campus, "CS")
-# print("BFS order from CS:", order)
-# path = reconstruct_path(parent, "CS", "CAFE")
-# print("Shortest (fewer hops) path CS -> CAFE:", path)
-
-
-
-# #Demonstration of DFS
-# prereq_dag = {
-#     "CS1": ["CS2"],
-#     "CS2": ["ALGO"],
-#     "MATH": ["ALGO"],
-#     "ALGO": [],
-# }
-# has_cycle, topo = dfs_cycle_and_topo(prereq_dag)
-# print("Cycle in prereque_dag?", has_cycle)
-# print("One Valid couse order:", topo)
-
-# cyclic = {
-#     "A": ["B"],
-#     "B": ["C"],
-#     "C": ["A"],
-# }
-
-# cyc, topo2 = dfs_cycle_and_topo(cyclic)
-# print("Cycle in Cyclic?", cyc)
-# print("Topo for Cyclic (should be empty):", topo2)
-
-
+def createEdge():
+    pass
 
 
 test_data = ["CS", "Library", "Cafe"]
+test_edges = {"edge1" : ["CS", "Library"], "edge2" : ["Library", "Cafe"]}
+
 
 # initialize main window
 main_window = tk.Tk()
 
+    
 
 
 
@@ -175,13 +129,85 @@ main_window.title("Graph Visualization")
 # main_window.configure(bg = "AntiqueWhite2")
 
 
+# frame initilization
+header_frame = tk.Frame(main_window, pady= 20)
+header_frame.pack()
+
+header_text = tk.Label(header_frame, text = "Interactive Campus Visualization", font = ("Arial", 24))
+header_text.pack()
+
+main_frame = tk.Frame(main_window, pady= 5)
+
+# main frame for buttons/inputs
+building_frame = tk.Frame(main_frame, pady = 5)
+building_frame.pack()
+
+
+# frame for creating a button / node
+building_button_left_frame = tk.Frame(building_frame, pady= 5)
+building_button_left_frame.pack(side="left", padx=5, pady=5)
+
+
+# addBuildingInput = tk.Text(main_window, text = "What building would you like to insert?")
+addBuildingText = tk.Text(building_button_left_frame, height = 1, width = 20)
+addBuildingText.pack(side=tk.TOP)
+
+
+
+
+building_button_right_frame = tk.Frame(building_frame, pady= 5)
+building_button_right_frame.pack(side="left", padx=5, pady=5)
+
+
+
+addBuildingButton = tk.Button(building_button_right_frame, text = "Add Building", command = updateGraph, height = 1, width = 20)
+addBuildingButton.pack()
+
+
+
+
+# frame for creating an edge
+edge_outer_frame = tk.Frame(main_frame)
+edge_outer_frame.pack()
+
+# frame for text boxes on left for edge buildings/weight/accessibility
+edge_button_left_frame = tk.Frame(edge_outer_frame, pady= 5)
+edge_button_left_frame.pack(side="left", padx=5, pady=5)
+
+# buttons to customize edges
+addEdgeBuildingsText = tk.Text(edge_button_left_frame, height = 1, width = 20)
+addEdgeWeightText = tk.Text(edge_button_left_frame, height = 1, width = 20)
+addEdgeAccessible = tk.Checkbutton(edge_button_left_frame, text = "Accessible", height = 1, width = 20)
+
+addEdgeBuildingsText.pack(side = tk.TOP)
+addEdgeWeightText.pack(side = tk.TOP)
+addEdgeAccessible.pack(side = tk.TOP)
+
+
+# frame for edge create button on the right
+edge_button_right_frame = tk.Frame(edge_outer_frame, pady= 5)
+edge_button_right_frame.pack(side="left", padx=5, pady=5)
+
+# button to create edge
+addEdgeBuildingButton = tk.Button(edge_button_right_frame, text = "Create Edge", command = createEdge, height = 3, width = 20)
+addEdgeBuildingButton.pack()
+
+
 
 generateGraphButton = tk.Button(main_window, text = "Make Graph", command = makeGraph)
 
 
-
 generateGraphButton.pack(pady=5)
 
+main_frame.pack()
+
+g = nx.Graph()
+
+fig = Figure(figsize = (5,5))
+ax = fig.add_subplot(111)
+ax.axis('off')
+canvas = FigureCanvasTkAgg(fig, master=main_window)
+canvas.get_tk_widget().pack(pady=20)
 
 
 # main window loop
