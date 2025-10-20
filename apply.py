@@ -81,11 +81,6 @@ def dfs_cycle_and_topo(graph):
 
     return False, topo
 
-
-def foo():
-    print("yay")
-
-
 def makeGraph():
     ax.clear()
 
@@ -114,11 +109,11 @@ def makeGraph():
 def updateGraph():
     input = addBuildingText.get("1.0", 'end-1c').upper()
     if not input:
+        print("Invalid output.")
         return
     if input in nodes:
         print("Building already exists.")
         return
-
     nodes.append(input)
     print(nodes)
     makeGraph()
@@ -146,75 +141,73 @@ def createEdge():
         if set(edges) == {a, b}:
             print("This edge already exists.")
             return
-        
+    
+    # if addEdgeAccessible.get():
+        # print(f"Is")
     graph_edges["edge" + str(edge_counter)] = [a, b]
     makeGraph()
     edge_counter += 1
     print(graph_edges)
     print(f"Current edge weight: {edgeDistance}")
     print(f"Current edge time: {edgeTime}")
-
+    print(f"Is this edge accessible?: {is_accessible.get()}")
 
 
 nodes = []
 graph_edges = {}
 
-
 # initialize main window
 main_window = tk.Tk()
 
-    
-
-
+is_accessible = tk.BooleanVar(main_window, value=False)
 
 # window size and title of window
-main_window.geometry("1200x1000")
+main_window.geometry("1200x800")
 main_window.title("Graph Visualization")
 # main_window.configure(bg = "AntiqueWhite2")
 
 
 # frame initilization
-header_frame = tk.Frame(main_window, pady= 20)
-header_frame.pack()
+header_frame = tk.Frame(main_window)
+header_frame.pack(pady= (100, 5))
 
+# header text
 header_text = tk.Label(header_frame, text = "Interactive Campus Visualization", font = ("Arial", 24))
 header_text.pack()
 
+# outer frame for inner frames to fall into
 main_frame = tk.Frame(main_window, pady= 5)
 
-# main frame for buttons/inputs
+canvas_frame = tk.Frame(main_window, pady= 5)
+
+# frame for buttons/inputs to create buildings/nodes
 building_frame = tk.Frame(main_frame, pady = 5)
-building_frame.pack()
+building_frame.pack(side='top')
 
-
-# frame for creating a button / node
+# left frame for text input needed to create the building
 building_button_left_frame = tk.Frame(building_frame, pady= 5)
 building_button_left_frame.pack(side="left", padx=5, pady=5)
 
-
-# addBuildingInput = tk.Text(main_window, text = "What building would you like to insert?")
+# text input to get name of building user wants to create
 addBuildingText = tk.Text(building_button_left_frame, height = 1, width = 20)
 addBuildingText.pack(side=tk.TOP)
 
-
-
-
+# right frame for button to create the building
 building_button_right_frame = tk.Frame(building_frame, pady= 5)
 building_button_right_frame.pack(side="left", padx=5, pady=5)
 
-
-
+# button to grab text input and create the building / node
 addBuildingButton = tk.Button(building_button_right_frame, text = "Add Building", command = updateGraph, height = 1, width = 20)
 addBuildingButton.pack()
 
 
 
 
-# frame for creating an edge
+# main frame for creating an edge
 edge_outer_frame = tk.Frame(main_frame)
-edge_outer_frame.pack()
+edge_outer_frame.pack(side="bottom")
 
-# frame for text boxes on left for edge buildings/weight/accessibility
+# frame for text boxes on left for edge buildings/distance/time/accessibility
 edge_button_left_frame = tk.Frame(edge_outer_frame, pady= 5)
 edge_button_left_frame.pack(side="left", padx=5, pady=5)
 
@@ -222,7 +215,7 @@ edge_button_left_frame.pack(side="left", padx=5, pady=5)
 addEdgeBuildingsText = tk.Text(edge_button_left_frame, height = 1, width = 20)
 addEdgeDistanceText = tk.Text(edge_button_left_frame, height = 1, width = 20)
 addEdgeTimeText = tk.Text(edge_button_left_frame, height = 1, width = 20)
-addEdgeAccessible = tk.Checkbutton(edge_button_left_frame, text = "Accessible", height = 1, width = 20)
+addEdgeAccessible = tk.Checkbutton(edge_button_left_frame, text = "Accessible", height = 1, width = 20, variable=is_accessible)
 
 addEdgeBuildingsText.pack(side = tk.TOP)
 addEdgeDistanceText.pack(side = tk.TOP)
@@ -238,12 +231,11 @@ edge_button_right_frame.pack(side="left", padx=5, pady=5)
 addEdgeBuildingButton = tk.Button(edge_button_right_frame, text = "Create Edge", command = createEdge, height = 3, width = 20)
 addEdgeBuildingButton.pack()
 
-main_frame.pack()
+main_frame.pack(side='right', padx= (10, 100))
+canvas_frame.pack(side='left', padx = (100, 10))
 
-generateGraphButton = tk.Button(main_window, text = "Make Graph", command = makeGraph)
-
-
-generateGraphButton.pack(pady=5)
+# generateGraphButton = tk.Button(main_window, text = "Make Graph", command = makeGraph)
+# generateGraphButton.pack(pady=5)
 
 
 
@@ -251,11 +243,11 @@ G = nx.Graph()
 pos = {}
 edge_counter = 0
 
-fig = Figure(figsize = (5,5))
+fig = Figure(figsize = (10,5))
 ax = fig.add_subplot(111)
 ax.axis('off')
-canvas = FigureCanvasTkAgg(fig, master=main_window)
-canvas.get_tk_widget().pack(pady=20)
+canvas = FigureCanvasTkAgg(fig, master=canvas_frame)
+canvas.get_tk_widget().pack(side=tk.RIGHT, pady=5)
 
 
 
