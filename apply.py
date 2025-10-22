@@ -4,8 +4,9 @@
 # Date: 10/25/2025
 
 import customtkinter as CTk
+import tkinter as tk
 from tkinter import ttk
-import matplotlib.pyplot as plt
+from tkinter import messagebox
 import networkx as nx
 from collections import deque
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -75,18 +76,53 @@ def makeGraph():
     for i in nodes:
         G.add_node(i)
     for edge in graph_edges.values():
-        G.add_edge(edge['a'], edge['b'], distance=edge['distance'], time=edge['time'], accessible=edge['accessible'])
+        G.add_edge(edge['a'], edge['b'], 
+                   distance=edge['distance'], 
+                   time=edge['time'], 
+                   accessible=edge['accessible'], 
+                   closed=edge['closed'])
+    
+    pos = nx.spring_layout(G, seed = 5)
 
-    nx.draw(G, with_labels=True, node_color='lightblue', font_weight='bold', ax=ax)
+    # Separate accessible vs non-accessible edges
+    closed_edges = []
+    accessible_edges = []
+    nonaccessible_edges = []
+    for u, v, d in G.edges(data=True):
+        if d['closed']:
+            closed_edges.append((u, v))
+        elif d['accessible']:
+            accessible_edges.append((u, v))
+        else:
+            nonaccessible_edges.append((u, v))
+
+    # Draw nodes
+    nx.draw_networkx_nodes(G, pos, node_size = 700, node_color='lightblue', ax=ax)
+
+    # Draw labels
+    nx.draw_networkx_labels(G, pos, font_weight='bold', ax=ax)
+
+    # Draw edges
+    nx.draw_networkx_edges(G, pos, edgelist = accessible_edges, edge_color='black', width=2, ax=ax)
+    nx.draw_networkx_edges(G, pos, edgelist = nonaccessible_edges, edge_color='orange', style='dashed', width=2, ax=ax)
+    nx.draw_networkx_edges(G, pos, edgelist = closed_edges, edge_color = 'red', width = 5, ax = ax)
+
+    # Draw edge labels for distance/time
+    edge_labels = { (u,v): f"{d['distance']}ft, {d['time']}min" for u,v,d in G.edges(data=True) }
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='black', ax=ax)
+
+    ax.axis('off')
     canvas.draw()
 
 
 def updateGraph():
     input_text = addBuildingText.get().upper()
     if not input_text:
+        messagebox.showerror("Error!", "Invalid input.")
         print("Invalid input.")
         return
     if input_text in nodes:
+        messagebox.showerror("Error!", "Building already exists.")
         print("Building already exists.")
         return
     nodes.append(input_text)
@@ -98,6 +134,7 @@ def createEdge():
     global edge_counter
     connect_buildings = [b.strip().upper() for b in addEdgeBuildingsText.get().split(',')]
     if len(connect_buildings) != 2:
+        messagebox.showerror("Error!", "Please input 2 valid buildings that are comma seperated. \n(e. g.) Building 1, Building 2")
         print("Please input 2 valid buildings")
         return
 
@@ -106,17 +143,22 @@ def createEdge():
         edgeDistance = int(addEdgeDistanceText.get())
         edgeTime = int(addEdgeTimeText.get())
     except ValueError:
-        print("Please input valid numbers for distance and/or time")
+        messagebox.showerror("Error!", "Please input valid numbers for distance and or time.")
+        print("Please input valid numbers for distance and or time")
         return
 
     if edgeDistance <= 0 or edgeTime <= 0:
+        messagebox.showerror("Error!", "Please enter positive non-zero numbers for distance and time.")
         print("Please enter positive non-zero numbers for distance and time")
         return
+    
     if a not in nodes or b not in nodes:
+        messagebox.showerror("Error!", f"One or both buildings ({a}, {b}) do not exist.")
         print(f"One or both buildings ({a}, {b}) do not exist.")
         return
     for edges in graph_edges.values():
         if {a, b} == {edges['a'], edges['b']}:
+            messagebox.showerror("Error!", "This edge already exists.")
             print("This edge already exists.")
             return
 
@@ -132,6 +174,46 @@ def createEdge():
     edge_counter += 1
     print(graph_edges)
     return
+
+def randomizeWeights():
+    for edge in graph_edges.values():
+        import random
+        edge['distance'] = random.randint(500, 1500)
+        edge['time'] = round(edge['distance'] * 1/300, 3)
+    makeGraph()
+
+def simulateClosedEdges():
+    import random
+    if edgeClosureState.get() == False:
+        for edge in graph_edges.values():
+            edge['closed'] = False
+        print("Re-opened edges") 
+    else:
+        for edge in graph_edges.values():
+            edge['closed'] = random.choice([True, False])
+        print("Closed edges")
+    makeGraph()
+
+def runTraversal():
+    buildingChoice = [b.strip().upper() for b in buildingTraversalSelection.get().split(',')]
+    traversalChoice = traversalSelection.get()
+
+    if not traversalChoice:
+        messagebox.showerror("Error!", "Please choose a searching algorithm.")
+        print("Please choose a searching algorithm")
+        return
+    if len(buildingChoice) != 2:
+        messagebox.showerror("Error!", "Please input 2 valid buildings.")
+        print("Please input 2 valid buildings")
+        return
+    
+    a, b = buildingChoice
+
+    if a not in nodes or b not in nodes:
+        print("Buildings do not exist")
+        return
+    print(buildingChoice)
+    print(traversalChoice)
 
 
 nodes = []
@@ -211,16 +293,21 @@ traversal_button_left_frame.pack(side="left", padx=5)
 traversal_button_right_frame = CTk.CTkFrame(traversal_button_frame, fg_color="transparent")
 traversal_button_right_frame.pack(side="left", padx=5)
 
+accessibleOnly = tk.BooleanVar(main_window, value = False)
+edgeClosureState = tk.BooleanVar(main_window, value = False)
+
 buildingTraversalSelection = CTk.CTkEntry(traversal_button_left_frame, height=25, width=200, placeholder_text="Enter Buildings for Traversal")
-traversalSelection = ttk.Combobox(traversal_button_left_frame, values=["BFS", "DFS"], height=3, width=24)
-randomizeWeightsButton = CTk.CTkButton(traversal_button_left_frame, text="Randomize Weights")
-simulateClosedEdgesButton = CTk.CTkButton(traversal_button_left_frame, text="Simulate Closed Edges")
-traversalButton = CTk.CTkButton(traversal_button_right_frame, text="Run Path Traversal")
+traversalSelection = ttk.Combobox(traversal_button_left_frame, state= 'readonly', values=["BFS", "DFS"], height=3, width=24)
+randomizeWeightsButton = CTk.CTkButton(traversal_button_left_frame, text="Randomize Weights", command=randomizeWeights)
+simulateClosedEdgesButton = CTk.CTkCheckBox(traversal_button_left_frame, text="Toggle Edge Closures", command=simulateClosedEdges, variable = edgeClosureState)
+accessibleOnlyCheckbox = CTk.CTkCheckBox(traversal_button_left_frame, text = "Accessible Only?", variable = accessibleOnly)
+traversalButton = CTk.CTkButton(traversal_button_right_frame, text="Run Path Traversal", command=runTraversal)
 
 buildingTraversalSelection.pack(pady=2)
 traversalSelection.pack(pady=2)
 randomizeWeightsButton.pack(pady=2)
 simulateClosedEdgesButton.pack(pady=2)
+accessibleOnlyCheckbox.pack(pady=2)
 traversalButton.pack(pady=2)
 
 main_frame.pack(side='right', padx=(10, 100))
@@ -233,8 +320,9 @@ edge_counter = 0
 fig = Figure(figsize=(10, 5))
 ax = fig.add_subplot(111)
 ax.axis('off')
+fig.tight_layout(pad=2)
 canvas = FigureCanvasTkAgg(fig, master=canvas_frame)
-canvas.get_tk_widget().pack(side="right", pady=5)
+canvas.get_tk_widget().pack(fill = "both", expand= True)
 
 # run window
 main_window.mainloop()
