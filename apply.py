@@ -91,11 +91,10 @@ def select_node(node_name):
         oval_id, _ = node_items[node_name]
         canvas.itemconfigure(oval_id, fill='yellow') # Highlight color
     
-    # Case 3: We try to select a 3rd node
     else:
         messagebox.showwarning("Selection Error", "You can only select two nodes at a time.")
 
-    # Update the selection label
+    # update the selection label
     if not selected_nodes:
         selection_label_var.set("Selected: None")
     else:
@@ -299,6 +298,7 @@ def simulateClosedEdges():
             else:
                 canvas.itemconfigure(edge['id'], fill = 'orange', width = 2)
                 canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)", fill = 'orange')
+
     # when it is unchecked, reverts the previously closed edges to what they were before
     else:
         for edge in graph_edges.values():
@@ -378,6 +378,7 @@ def runTraversal():
         total_time += time
         canvas.itemconfigure(edge_id, fill='green', width=6)
 
+    # display message
     path_length = len(path) - 1
     messagebox.showinfo(
         "Traversal Result",
@@ -478,8 +479,7 @@ control_panel_frame.grid_rowconfigure(1, weight=0)
 control_panel_frame.grid_rowconfigure(2, weight=0) 
 
 
-
-# frame for the legend
+# frame for the key
 key_group = ttk.LabelFrame(control_panel_frame, text="Legend")
 key_group.grid(row=0, column=0, sticky="new", padx=10, pady=10)
 key_group.grid_columnconfigure(0, weight=1)
