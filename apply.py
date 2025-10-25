@@ -432,7 +432,7 @@ node_items = {}
 # determine window size
 # make title of window
 main_window = tk.Tk()  
-main_window.geometry("1400x800")
+main_window.geometry("1600x800")
 main_window.title("Interactive Campus Visualization")
 
 # make the grid the frames will fall into
@@ -476,8 +476,7 @@ control_panel_frame.grid_rowconfigure(0, weight=0)
 control_panel_frame.grid_rowconfigure(1, weight=0) 
 # traversal buttons
 control_panel_frame.grid_rowconfigure(2, weight=0) 
-# spacer
-control_panel_frame.grid_rowconfigure(3, weight=1) 
+
 
 
 # frame for the legend
@@ -500,28 +499,29 @@ key_label.grid(row=0, column=0, sticky="w", padx=10, pady=10)
 edge_group = ttk.LabelFrame(control_panel_frame, text="Create/Update Edge")
 edge_group.grid(row=1, column=0, sticky="new", padx=10, pady=10)
 edge_group.grid_columnconfigure(0, weight=1)
+edge_group.grid_columnconfigure(1, weight=1)
 
 # label for user selection
-selection_label = ttk.Label(edge_group, textvariable=selection_label_var, font=("Arial", 12, "bold"))
-selection_label.grid(row=0, column=0, sticky="w", padx=10, pady=(5,5))
+selection_label = ttk.Label(edge_group, textvariable=selection_label_var, font=("Arial", 10, "bold"))
+selection_label.grid(row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(5,5))
 
 # labels for clarity
-ttk.Label(edge_group, text="Distance (feet):").grid(row=2, column=0, sticky="w", padx=10, pady=(5,0))
+ttk.Label(edge_group, text="Distance (feet):").grid(row=2, column=0, sticky="w", padx=(10,5), pady=(5,0))
 addEdgeDistanceText = ttk.Entry(edge_group)
-addEdgeDistanceText.grid(row=3, column=0, sticky="ew", padx=10, pady=(0,5))
+addEdgeDistanceText.grid(row=3, column=0, sticky="ew", padx=(10,5), pady=(0,5)) 
 
-ttk.Label(edge_group, text="Time (mins):").grid(row=4, column=0, sticky="w", padx=10, pady=(5,0))
+ttk.Label(edge_group, text="Time (mins):").grid(row=2, column=1, sticky="w", padx=(5,10), pady=(5,0)) 
 addEdgeTimeText = ttk.Entry(edge_group)
-addEdgeTimeText.grid(row=5, column=0, sticky="ew", padx=10, pady=(0,5))
+addEdgeTimeText.grid(row=3, column=1, sticky="ew", padx=(5,10), pady=(0,5)) 
 
 addEdgeAccessible = ttk.Checkbutton(edge_group, text="Accessible Path", variable=is_accessible)
-addEdgeAccessible.grid(row=6, column=0, sticky="w", padx=10, pady=5)
+addEdgeAccessible.grid(row=6, column=0, columnspan=2, sticky="w", padx=10, pady=5) 
 
 addEdgeClosed = ttk.Checkbutton(edge_group, text = "Closed Path", variable = edgeClosureState)
-addEdgeClosed.grid(row=7, column = 0, sticky="w", padx= 10, pady=5)
+addEdgeClosed.grid(row=7, column = 0, columnspan=2, sticky="w", padx= 10, pady=5) 
 
 addEdgeBuildingButton = ttk.Button(edge_group, text="Create/Update Edge", command=createEdge)
-addEdgeBuildingButton.grid(row=8, column=0, sticky="ew", padx=10, pady=(5, 10))
+addEdgeBuildingButton.grid(row=8, column=0, columnspan=2, sticky="ew", padx=10, pady=(5, 10)) 
 
 
 # frame for traversal buttons/inputs
