@@ -4,7 +4,7 @@
 # Date: 10/25/2025
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk 
 from tkinter import simpledialog
 from tkinter import messagebox
 from collections import deque
@@ -74,8 +74,45 @@ def dfs_path(graph, start, target):
         path.reverse()
     return path, order
 
-# function to insert a node when canvas clicked by user
+# function for node selections
+def select_node(node_name):
+    global selected_nodes
+    global node_items
+
+    # checks if node is already selected, if so then unselect
+    if node_name in selected_nodes:
+        selected_nodes.remove(node_name)
+        oval_id, _ = node_items[node_name]
+        canvas.itemconfigure(oval_id, fill='white')
+    
+    # checks if node is not selected, and if 2 nodes already exist 
+    elif len(selected_nodes) < 2:
+        selected_nodes.append(node_name)
+        oval_id, _ = node_items[node_name]
+        canvas.itemconfigure(oval_id, fill='yellow') # Highlight color
+    
+    # Case 3: We try to select a 3rd node
+    else:
+        messagebox.showwarning("Selection Error", "You can only select two nodes at a time.")
+
+    # Update the selection label
+    if not selected_nodes:
+        selection_label_var.set("Selected: None")
+    else:
+        selection_label_var.set(f"Selected: {', '.join(selected_nodes)}")
+
+
+# function to insert a node when canvas clicked by user/select node
 def insertNode(e):
+    # check if we clicked an existing node first
+    item = canvas.find_withtag("current") 
+    if item:
+        item_id = item[0]
+        # check if this item_id is one of our nodes
+        for name, (oval_id, text_id) in node_items.items():
+            if item_id == oval_id or item_id == text_id:
+                select_node(name)
+                return 
 
     # get coordinates of where the user clicked and add a value of 30 for the radius of the circle
     x1, y1= (e.x-30), (e.y-30)
@@ -97,12 +134,12 @@ def insertNode(e):
         return
     
     # creates circle
-    canvas.create_oval(x1, y1, x2, y2, fill = 'white', outline = 'black')
+    oval_id = canvas.create_oval(x1, y1, x2, y2, fill = 'white', outline = 'black') 
     center_x = (x1 + x2) / 2
     center_y = (y1 + y2) / 2
 
     # creates text inside circle
-    canvas.create_text(
+    text_id = canvas.create_text( 
         center_x,
         center_y,
         text = building,
@@ -113,14 +150,21 @@ def insertNode(e):
     # adds the building into the nodes list
     nodes.append(building)
     node_coords[building] = [e.x, e.y]
+    node_items[building] = (oval_id, text_id) 
     # print(nodes)
     # print(f"Current coords: {str(e.x), str(e.y)}")
 
 # function to create an edge
 def createEdge():
     global edge_counter
-    # gets a text input [buildingA, buildingB] 
-    connect_buildings = [b.strip().upper() for b in addEdgeBuildingsText.get().split(',')]
+    global selected_nodes 
+
+    if len(selected_nodes) != 2:
+        messagebox.showerror("Error", "Please click to select exactly two buildings on the canvas.")
+        return
+    
+    building_A, building_B = selected_nodes
+    connect_buildings = [building_A, building_B] 
     
     # checks if the user has inputted a valid input for the edge weights (distance and time)
     try:
@@ -130,23 +174,35 @@ def createEdge():
         messagebox.showerror("Error", "Please enter valid numbers for distance and time.")
         return
     
-    # checks if the user input has more or less than 2 buildings
-    if len(connect_buildings) != 2:
-        messagebox.showerror("Error", "Please input 2 valid buildings")
-        return
-    
-    building_A, building_B = connect_buildings
-
-    # checks if the buildings exist
-    if building_A not in nodes or building_B not in nodes:
-        messagebox.showerror("Error", "One or more of the buildings do not exist.")
-        return
-    
     # iterate over all the edges and see if the edge already exists or not
     for edge in graph_edges.values():
         edge_set = {edge['a'], edge['b']}
         if set(connect_buildings) == edge_set:
-            messagebox.showerror("Error", "Edge already exists!")
+            edge['a'] = building_A
+            edge['b'] = building_B
+            edge['distance'] = dist
+            edge['time'] = time
+            edge['accessible'] = is_accessible.get()
+            edge['user_closed'] = edgeClosureState.get()
+            print(graph_edges)
+            
+            if edge['user_closed'] or edge['closed_random']:
+                canvas.itemconfigure(edge['id'], fill = 'red', width = 4)
+                canvas.itemconfigure(edge['text_id'], text = 'CLOSED', fill = 'black')
+            elif edge['accessible']:
+                canvas.itemconfigure(edge['id'], fill = 'black', width = 2)
+                canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)", fill = 'CadetBlue1')
+            else:
+                canvas.itemconfigure(edge['id'], fill = 'orange', width = 2)
+                canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)", fill = 'orange')
+                
+            oval_id_A, _ = node_items[building_A]
+            oval_id_B, _ = node_items[building_B]
+            canvas.itemconfigure(oval_id_A, fill='white')
+            canvas.itemconfigure(oval_id_B, fill='white')
+            selected_nodes.clear()
+            selection_label_var.set("Selected: None")
+            # messagebox.showerror("Error", "Edge already exists!")
             return
 
     # get centers of the two nodes on the canvas
@@ -157,25 +213,35 @@ def createEdge():
     center_y = (building_A_coords[1] + building_B_coords[1])/2
 
     # checks if the user wants the edge be accessible and creates the line connecting the nodes, changing the color based on accessibility
-    if is_accessible.get() == True:
+    if edgeClosureState.get():
         edge = canvas.create_line(building_A_coords[0], building_A_coords[1],
-                           building_B_coords[0], building_B_coords[1], 
-                           fill = 'Black', width = 2)
+                                building_B_coords[0], building_B_coords[1], 
+                                fill = 'Red', width = 4)
         text = canvas.create_text(center_x,
-                                  center_y,
-                                  text = f"{dist} feet\n {time} min(s)",
-                                  font = ("Arial", 12, "bold"),
-                                  fill = 'CadetBlue1')
+                                center_y,
+                                text = "CLOSED",
+                                font = ("Arial", 12, "bold"),
+                                fill = 'Black')
+
+    elif is_accessible.get() == True:
+        edge = canvas.create_line(building_A_coords[0], building_A_coords[1],
+                                building_B_coords[0], building_B_coords[1], 
+                                fill = 'Black', width = 2)
+        text = canvas.create_text(center_x,
+                                center_y,
+                                text = f"{dist} feet\n {time} min(s)",
+                                font = ("Arial", 12, "bold"),
+                                fill = 'CadetBlue1')
     else:
         edge = canvas.create_line(building_A_coords[0], building_A_coords[1],
-                           building_B_coords[0], building_B_coords[1],
-                           fill = 'Orange', width = 2)
+                                building_B_coords[0], building_B_coords[1],
+                                fill = 'Orange', width = 2)
         text = canvas.create_text(center_x,
-                                  center_y,
-                                  text =  f"{dist} feet\n {time}min(s)",
-                                  font = ("Arial", 12, "bold"),
-                                  fill = 'orange',
-                                  )
+                                center_y,
+                                text =  f"{dist} feet\n {time}min(s)",
+                                font = ("Arial", 12, "bold"),
+                                fill = 'orange',
+                                )
 
     canvas.tag_lower(edge)
     canvas.tag_raise(text)
@@ -188,11 +254,20 @@ def createEdge():
         'distance': dist,
         'time': time,
         'accessible': is_accessible.get(),
-        'closed': False,
+        'user_closed': edgeClosureState.get(),
+        'closed_random': False,
         'id': edge ,
         'text_id' : text
     }
     edge_counter += 1
+    
+    oval_id_A, _ = node_items[building_A]
+    oval_id_B, _ = node_items[building_B]
+    canvas.itemconfigure(oval_id_A, fill='white')
+    canvas.itemconfigure(oval_id_B, fill='white')
+    selected_nodes.clear()
+    selection_label_var.set("Selected: None")
+    
     print(graph_edges)
 
 # function to randomize weights of the edges
@@ -202,37 +277,40 @@ def randomizeWeights():
     for edge in graph_edges.values():
         edge['distance'] = random.randint(700,1500)
         edge['time'] = round(1 / 300 * edge['distance'], 2)
-        canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)")
+        if not edge['user_closed'] and not edge['closed_random']:
+            canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)")
         # print(f"From {edge['a']} to {edge['b']}, the distance is {edge['distance']} feet and the time is now {edge['time']} minutes.")
 
 # function to randomly close edges
 def simulateClosedEdges():
     import random
     # checks if the user has it checked or not
-    closedEdgesState = edgeClosureState.get()
+    closedEdgesState = edgeClosureStateRandom.get()
     if closedEdgesState == True:
         # iterates over the edges and randomly decides if it is closed or not
         for edge in graph_edges.values():
-            edge['closed'] = bool(random.getrandbits(1))
-            if edge['closed'] == True:
+            edge['closed_random'] = bool(random.getrandbits(1))
+            if edge['closed_random'] or edge['user_closed']:
                 canvas.itemconfigure(edge['id'], fill = 'red', width = 4)
                 canvas.itemconfigure(edge['text_id'], text = 'CLOSED', fill = 'black')
+            elif edge['accessible']:
+                canvas.itemconfigure(edge['id'], fill = 'black', width = 2)
+                canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)", fill = 'CadetBlue1')
             else:
-                if edge['accessible'] == True:
-                    canvas.itemconfigure(edge['id'], fill = 'black', width = 2)
-                    canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)", fill = 'CadetBlue1')
-                else:
-                    canvas.itemconfigure(edge['id'], fill = 'orange', width = 2)
-                    canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)", fill = 'orange')
+                canvas.itemconfigure(edge['id'], fill = 'orange', width = 2)
+                canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)", fill = 'orange')
     # when it is unchecked, reverts the previously closed edges to what they were before
     else:
         for edge in graph_edges.values():
-            edge['closed'] = False
-            if edge['accessible'] == True:
-                canvas.itemconfigure(edge['id'], fill = 'black')
+            edge['closed_random'] = False
+            if edge['user_closed']:
+                canvas.itemconfigure(edge['id'], fill = 'red', width = 4)
+                canvas.itemconfigure(edge['text_id'], text = 'CLOSED', fill = 'black')
+            elif edge['accessible']:
+                canvas.itemconfigure(edge['id'], fill = 'black', width = 2)
                 canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)", fill = 'CadetBlue1')
             else:
-                canvas.itemconfigure(edge['id'], fill = 'orange')
+                canvas.itemconfigure(edge['id'], fill = 'orange', width = 2)
                 canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)", fill = 'orange')
 
 # function to run BFS/DFS 
@@ -263,7 +341,7 @@ def runTraversal():
     # iterates over the edges
     for edge in graph_edges.values():
         # checks if the edge is closed, if so skip
-        if edge['closed']:
+        if edge['closed_random'] or edge['user_closed']:
             continue
 
         # checks if the user wants only accessible edges, if so then skip
@@ -311,12 +389,16 @@ def runTraversal():
         f"Total Time: {total_time:.2f} min(s)"
     )
 
+    # after the message box is closed, change back the colors/texts of the lines to what they were
     for edge in graph_edges.values():
-        if edge['accessible'] == True:
-            canvas.itemconfigure(edge['id'], fill = 'black', width = 3)
+        if edge['user_closed'] or edge['closed_random']:
+            canvas.itemconfigure(edge['id'], fill = 'red', width = 4)
+            canvas.itemconfigure(edge['text_id'], text = 'CLOSED', fill = 'black')
+        elif edge['accessible']:
+            canvas.itemconfigure(edge['id'], fill = 'black', width = 2)
             canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)", fill = 'CadetBlue1')
         else:
-            canvas.itemconfigure(edge['id'], fill = 'orange', width = 3)
+            canvas.itemconfigure(edge['id'], fill = 'orange', width = 2)
             canvas.itemconfigure(edge['text_id'], text = f"{edge['distance']} feet\n {edge['time']} min(s)", fill = 'orange')
 
 # function to clear canvas
@@ -325,10 +407,16 @@ def clearCanvas():
     global node_coords
     global graph_edges
     global edge_counter
+    global selected_nodes 
+    global node_items 
+
     nodes = []
     node_coords = {}
     graph_edges = {}
     edge_counter = 0
+    selected_nodes = [] 
+    node_items = {} 
+    selection_label_var.set("Selected: None") 
     canvas.delete('all')
 
 
@@ -337,6 +425,8 @@ nodes = []
 node_coords = {}
 graph_edges = {}
 edge_counter = 0
+selected_nodes = [] 
+node_items = {} 
 
 # make main window
 # determine window size
@@ -354,6 +444,8 @@ main_window.grid_rowconfigure(1, weight=1)
 is_accessible = tk.BooleanVar(main_window, value=False)
 accessibleOnly = tk.BooleanVar(main_window, value=False)
 edgeClosureState = tk.BooleanVar(main_window, value=False)
+edgeClosureStateRandom = tk.BooleanVar(main_window, value=False)
+selection_label_var = tk.StringVar(main_window, value="Selected: None") 
 
 # frame for the header
 header_frame = ttk.Frame(main_window)
@@ -377,11 +469,15 @@ canvas.pack(anchor=tk.CENTER, expand=True)
 control_panel_frame = ttk.Frame(main_window)
 control_panel_frame.grid(row=1, column=1, sticky="nsew", padx=(10, 20), pady=10)
 control_panel_frame.grid_columnconfigure(0, weight=1)
-# Configure row weights to control vertical spacing
-control_panel_frame.grid_rowconfigure(0, weight=0) # Legend
-control_panel_frame.grid_rowconfigure(1, weight=0) # Edge Group
-control_panel_frame.grid_rowconfigure(2, weight=0) # Traversal Group
-control_panel_frame.grid_rowconfigure(3, weight=1) # Spacer
+
+# legend
+control_panel_frame.grid_rowconfigure(0, weight=0)
+# edge buttons/input
+control_panel_frame.grid_rowconfigure(1, weight=0) 
+# traversal buttons
+control_panel_frame.grid_rowconfigure(2, weight=0) 
+# spacer
+control_panel_frame.grid_rowconfigure(3, weight=1) 
 
 
 # frame for the legend
@@ -390,6 +486,7 @@ key_group.grid(row=0, column=0, sticky="new", padx=10, pady=10)
 key_group.grid_columnconfigure(0, weight=1)
 
 key_text = (
+    "Yellow → Selected Node\n" 
     "Green → Current BFS/DFS path\n"
     "Red → Closed or blocked path\n"
     "Orange → Non-accessible path\n"
@@ -400,15 +497,15 @@ key_label.grid(row=0, column=0, sticky="w", padx=10, pady=10)
 
 
 # frame for buttons/inputs to create an edge
-edge_group = ttk.LabelFrame(control_panel_frame, text="Create Edge")
+edge_group = ttk.LabelFrame(control_panel_frame, text="Create/Update Edge")
 edge_group.grid(row=1, column=0, sticky="new", padx=10, pady=10)
 edge_group.grid_columnconfigure(0, weight=1)
 
-# labels for clarity
-ttk.Label(edge_group, text="Buildings (e.g., A, B):").grid(row=0, column=0, sticky="w", padx=10, pady=(5,0))
-addEdgeBuildingsText = ttk.Entry(edge_group)
-addEdgeBuildingsText.grid(row=1, column=0, sticky="ew", padx=10, pady=(0,5))
+# label for user selection
+selection_label = ttk.Label(edge_group, textvariable=selection_label_var, font=("Arial", 12, "bold"))
+selection_label.grid(row=0, column=0, sticky="w", padx=10, pady=(5,5))
 
+# labels for clarity
 ttk.Label(edge_group, text="Distance (feet):").grid(row=2, column=0, sticky="w", padx=10, pady=(5,0))
 addEdgeDistanceText = ttk.Entry(edge_group)
 addEdgeDistanceText.grid(row=3, column=0, sticky="ew", padx=10, pady=(0,5))
@@ -420,8 +517,11 @@ addEdgeTimeText.grid(row=5, column=0, sticky="ew", padx=10, pady=(0,5))
 addEdgeAccessible = ttk.Checkbutton(edge_group, text="Accessible Path", variable=is_accessible)
 addEdgeAccessible.grid(row=6, column=0, sticky="w", padx=10, pady=5)
 
-addEdgeBuildingButton = ttk.Button(edge_group, text="Create Edge", command=createEdge)
-addEdgeBuildingButton.grid(row=7, column=0, sticky="ew", padx=10, pady=(5, 10))
+addEdgeClosed = ttk.Checkbutton(edge_group, text = "Closed Path", variable = edgeClosureState)
+addEdgeClosed.grid(row=7, column = 0, sticky="w", padx= 10, pady=5)
+
+addEdgeBuildingButton = ttk.Button(edge_group, text="Create/Update Edge", command=createEdge)
+addEdgeBuildingButton.grid(row=8, column=0, sticky="ew", padx=10, pady=(5, 10))
 
 
 # frame for traversal buttons/inputs
@@ -429,7 +529,7 @@ traversal_group = ttk.LabelFrame(control_panel_frame, text="Run Analysis")
 traversal_group.grid(row=2, column=0, sticky="new", padx=10, pady=10)
 traversal_group.grid_columnconfigure(0, weight=1)
 
-# Added label for clarity
+# label for clarity
 ttk.Label(traversal_group, text="Path (e.g., Start, End):").grid(row=0, column=0, sticky="w", padx=10, pady=(5,0))
 buildingTraversalSelection = ttk.Entry(traversal_group)
 buildingTraversalSelection.grid(row=1, column=0, sticky="ew", padx=10, pady=(0,5))
@@ -442,7 +542,7 @@ traversalSelection.grid(row=2, column=0, sticky="ew", padx=10, pady=5)
 randomizeWeightsButton = ttk.Button(traversal_group, text="Randomize Weights", command=randomizeWeights)
 randomizeWeightsButton.grid(row=3, column=0, sticky="ew", padx=10, pady=5)
 
-simulateClosedEdgesButton = ttk.Checkbutton(traversal_group, text="Toggle Random Edge Closures", command=simulateClosedEdges, variable=edgeClosureState)
+simulateClosedEdgesButton = ttk.Checkbutton(traversal_group, text="Toggle Random Edge Closures", command=simulateClosedEdges, variable=edgeClosureStateRandom)
 simulateClosedEdgesButton.grid(row=4, column=0, sticky="w", padx=10, pady=5)
 
 accessibleOnlyCheckbox = ttk.Checkbutton(traversal_group, text="Find Accessible Path Only?", variable=accessibleOnly)
